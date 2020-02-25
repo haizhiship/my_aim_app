@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'aim/aim_list.dart';
+import 'aim/show_aim_list.dart';
 
 void main() => runApp(MyApp());
 

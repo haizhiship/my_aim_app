@@ -11,6 +11,9 @@ class AddAimPage extends StatelessWidget {
   TextEditingController _newAimTitleController = new TextEditingController();
   TextEditingController __newAimContentController = new TextEditingController();
   GlobalKey _addNewAimKey = new GlobalKey<FormState>();
+  int _aimLength;
+
+  AddAimPage(int length){_aimLength = length;}
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +106,7 @@ class AddAimPage extends StatelessWidget {
                   Aim aim = new Aim(_newAimTitleController.text,
                       __newAimContentController.text);
                   _saveAim(aim);
-                  Navigator.pop(context,true);
+                  Navigator.pop(context,"OK");
                 }
               },
             ),
@@ -117,8 +120,6 @@ class AddAimPage extends StatelessWidget {
   void _saveAim(Aim aim) async {
     SharedPreferences preferences = await SharedPreferences.getInstance();
     String aimStr = jsonEncode(aim);
-    preferences.setString("111", aimStr);
-    Map aimMap = jsonDecode(preferences.getString("111"));
-    print(aimMap["content"]);
+    preferences.setString((_aimLength + 1).toString()+"Aim", aimStr);
   }
 }

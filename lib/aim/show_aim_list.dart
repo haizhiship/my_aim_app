@@ -12,7 +12,10 @@ class AimListPage extends StatefulWidget {
 
 class _AimListPageState extends State<AimListPage> {
   final List<AimItem> _aimItemList = <AimItem>[];
-  _AimListPageState() {
+
+  @override
+  void initState() {
+    super.initState();
     getAimList();
   }
 
@@ -30,15 +33,15 @@ class _AimListPageState extends State<AimListPage> {
               padding: new EdgeInsets.all(8.0), //new
               reverse: false, //new
               itemBuilder: (_, int index) => _aimItemList[index], //new
-              itemCount: _aimItemList.length,               //new
+              itemCount: _aimItemList.length,
+              //new
             ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(
-              context, MaterialPageRoute(builder: (context) => AddAimPage()));
+          _navigateToAddAim(context, _aimItemList.length);
         },
         tooltip: 'Increment',
         child: Icon(Icons.add),
@@ -46,24 +49,39 @@ class _AimListPageState extends State<AimListPage> {
     );
   }
 
-
   Future<void> getAimList() async {
     SharedPreferences preferences = await SharedPreferences.getInstance();
-    Map aimMap = jsonDecode(preferences.getString("111"));
-    if (aimMap != null) {
-      AimItem aim = AimItem(
-        aimMain: aimMap["aimTitle"],
-        aimText: aimMap["content"],
-      );
-      _aimItemList.insert(0, aim);
+    _aimItemList.clear();
+    int i = 1;
+    while (preferences.getString(i.toString() + "Aim") != null) {
+      Map aimMap = jsonDecode(preferences.getString(i.toString() + "Aim"));
+      if (aimMap != null) {
+        AimItem aim = AimItem(
+          index: i.toString(),
+          aimMain: aimMap["aimTitle"],
+          aimText: aimMap["content"],
+        );
+        _aimItemList.add(aim);
+        i++;
+      }
+    }
+    setState(() {});
+  }
+
+  void _navigateToAddAim(BuildContext context, int length) async {
+    final result = await Navigator.push(
+        context, MaterialPageRoute(builder: (context) => AddAimPage(length)));
+    if (result == "OK") {
+      getAimList();
     }
   }
 }
 
 class AimItem extends StatelessWidget {
-  AimItem({this.aimMain, this.aimText});
+  AimItem({this.aimMain, this.aimText,this.index});
   final String aimMain;
   final String aimText;
+  final String index;
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +93,7 @@ class AimItem extends StatelessWidget {
           Container(
             margin: const EdgeInsets.only(right: 16.0),
             child: CircleAvatar(
-              child: Text('1'),
+              child: Text(index),
             ),
           ),
           Expanded(
