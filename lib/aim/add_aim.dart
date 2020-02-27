@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'aim.dart';
 
-
 // ignore: must_be_immutable
 class AddAimPage extends StatelessWidget {
   TextEditingController _newAimTitleController = new TextEditingController();
@@ -13,7 +12,9 @@ class AddAimPage extends StatelessWidget {
   GlobalKey _addNewAimKey = new GlobalKey<FormState>();
   int _aimLength;
 
-  AddAimPage(int length){_aimLength = length;}
+  AddAimPage(int length) {
+    _aimLength = length;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +82,7 @@ class AddAimPage extends StatelessWidget {
       maxLength: 600,
       maxLines: 6,
       decoration:
-      InputDecoration(labelText: '目标内容', icon: Icon(Icons.assignment)),
+          InputDecoration(labelText: '目标内容', icon: Icon(Icons.assignment)),
       validator: (String value) {
         return value.isEmpty ? "目标内容不能为空" : null;
       },
@@ -97,16 +98,17 @@ class AddAimPage extends StatelessWidget {
             child: RaisedButton(
               padding: EdgeInsets.all(15),
               child: Text('保存'),
-              color: Theme
-                  .of(context)
-                  .primaryColor,
+              color: Theme.of(context).primaryColor,
               textColor: Colors.white,
               onPressed: () {
                 if ((_addNewAimKey.currentState as FormState).validate()) {
-                  Aim aim = new Aim(_newAimTitleController.text,
-                      __newAimContentController.text);
+                  Aim aim = new Aim(
+                      (_aimLength + 1).toString(),
+                      _newAimTitleController.text,
+                      __newAimContentController.text,
+                      "1");
                   _saveAim(aim);
-                  Navigator.pop(context,"OK");
+                  Navigator.pop(context, "OK");
                 }
               },
             ),
@@ -116,10 +118,9 @@ class AddAimPage extends StatelessWidget {
     );
   }
 
-
   void _saveAim(Aim aim) async {
     SharedPreferences preferences = await SharedPreferences.getInstance();
     String aimStr = jsonEncode(aim);
-    preferences.setString((_aimLength + 1).toString()+"Aim", aimStr);
+    preferences.setString((_aimLength + 1).toString() + "Aim", aimStr);
   }
 }

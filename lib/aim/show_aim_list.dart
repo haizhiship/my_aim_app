@@ -1,9 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+
 import 'add_aim.dart';
+import 'aim.dart';
+import 'aimItem.dart';
 
 class AimListPage extends StatefulWidget {
   @override
@@ -11,12 +15,13 @@ class AimListPage extends StatefulWidget {
 }
 
 class _AimListPageState extends State<AimListPage> {
-  final List<AimItem> _aimItemList = <AimItem>[];
+  final List<Aim> _aimItemList = <Aim>[];
+  SlidableController slidableController;
 
   @override
   void initState() {
     super.initState();
-    getAimList();
+    //getAimList();
   }
 
   @override
@@ -25,23 +30,20 @@ class _AimListPageState extends State<AimListPage> {
       appBar: AppBar(
         title: Text("目标清单"),
       ),
-      body: Column(
-        children: <Widget>[
-          Flexible(
-            child: ListView.builder(
-              //new
-              padding: new EdgeInsets.all(8.0), //new
-              reverse: false, //new
-              itemBuilder: (_, int index) => _aimItemList[index], //new
-              itemCount: _aimItemList.length,
-              //new
-            ),
-          ),
-        ],
+      body:  Center(
+        child: OrientationBuilder(
+          builder: (context, orientation) =>
+              _buildListView(
+                  context,
+                  orientation == Orientation.portrait
+                      ? Axis.vertical
+                      : Axis.horizontal),
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           _navigateToAddAim(context, _aimItemList.length);
+          print("bb114");
         },
         tooltip: 'Increment',
         child: Icon(Icons.add),
@@ -55,15 +57,11 @@ class _AimListPageState extends State<AimListPage> {
     int i = 1;
     while (preferences.getString(i.toString() + "Aim") != null) {
       Map aimMap = jsonDecode(preferences.getString(i.toString() + "Aim"));
-      if (aimMap != null) {
-        AimItem aim = AimItem(
-          index: i.toString(),
-          aimMain: aimMap["aimTitle"],
-          aimText: aimMap["content"],
-        );
+      if (aimMap != null && aimMap["valid"] == "1") {
+        Aim aim = Aim(i.toString(),aimMap["aimTitle"],aimMap["content"],"1");
         _aimItemList.add(aim);
-        i++;
       }
+      i++;
     }
     setState(() {});
   }
@@ -75,44 +73,147 @@ class _AimListPageState extends State<AimListPage> {
       getAimList();
     }
   }
+
+  Widget _buildListView(BuildContext context, Axis direction) {
+    return ListView.builder(
+      scrollDirection: direction,
+      itemBuilder: (context, index) {
+        final Axis slidableDirection =
+        direction == Axis.horizontal ? Axis.vertical : Axis.horizontal;
+        var item = _aimItemList[index];
+        return _getSlidableWithLists(context, index, slidableDirection);
+      },
+      itemCount: _aimItemList.length,
+    );
+  }
+
+  Widget _getSlidableWithLists(
+      BuildContext context, int index, Axis direction) {
+    final Aim item = _aimItemList[index];
+    //final int t = index;
+    return Slidable(
+      key: Key(item.getIndex),
+      controller: slidableController,
+      direction: direction,
+      dismissal: SlidableDismissal(
+        child: SlidableDrawerDismissal(),
+        onDismissed: (actionType) {
+          _showSnackBar(
+              context,
+              actionType == SlideActionType.primary
+                  ? 'Dismiss Archive'
+                  : 'Dimiss Delete');
+          setState(() {
+            _aimItemList.removeAt(index);
+          });
+        },
+      ),
+      actionPane: SlidableBehindActionPane(),
+      actionExtentRatio: 0.25,
+      child: direction == Axis.horizontal
+          ? VerticalListItem(_aimItemList[index])
+          : HorizontalListItem(_aimItemList[index]),
+      actions: <Widget>[
+        IconSlideAction(
+          caption: 'Archive',
+          color: Colors.blue,
+          icon: Icons.archive,
+          onTap: () => _showSnackBar(context, 'Archive'),
+        ),
+        IconSlideAction(
+          caption: 'Share',
+          color: Colors.indigo,
+          icon: Icons.share,
+          onTap: () => _showSnackBar(context, 'Share'),
+        ),
+      ],
+      secondaryActions: <Widget>[
+        Container(
+          height: 800,
+          color: Colors.green,
+          child: Text('a'),
+        ),
+        IconSlideAction(
+          caption: 'More',
+          color: Colors.grey.shade200,
+          icon: Icons.more_horiz,
+          onTap: () => _showSnackBar(context, 'More'),
+          closeOnTap: false,
+        ),
+        IconSlideAction(
+          caption: 'Delete',
+          color: Colors.red,
+          icon: Icons.delete,
+          onTap: () => _showSnackBar(context, 'Delete'),
+        ),
+      ],
+    );
+  }
+
+
+  void _showSnackBar(BuildContext context, String text) {
+    Scaffold.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
 }
 
-class AimItem extends StatelessWidget {
-  AimItem({this.aimMain, this.aimText,this.index});
-  final String aimMain;
-  final String aimText;
-  final String index;
-
+class HorizontalListItem extends StatelessWidget {
+  HorizontalListItem(this.item);
+  final Aim item;
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      color: Colors.white,
+      width: 160.0,
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
         children: <Widget>[
-          Container(
-            margin: const EdgeInsets.only(right: 16.0),
+          Expanded(
             child: CircleAvatar(
-              child: Text(index),
+              //backgroundColor: ,
+              child: Text('${item.getIndex}'),
+              foregroundColor: Colors.white,
             ),
           ),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  aimMain,
-                  style: Theme.of(context).textTheme.subhead,
-                ),
-                new Container(
-                  margin: const EdgeInsets.only(top: 5.0),
-                  child: Text(aimText, style: TextStyle(color: Colors.grey)),
-                )
-              ],
+            child: Center(
+              child: Text(
+                item.getContent,
+              ),
             ),
-          )
+          ),
         ],
       ),
     );
   }
 }
+
+class VerticalListItem extends StatelessWidget {
+  VerticalListItem(this.item);
+
+  final Aim item;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () =>
+      Slidable
+          .of(context)
+          ?.renderingMode == SlidableRenderingMode.none
+          ? Slidable.of(context)?.open()
+          : Slidable.of(context)?.close(),
+      child: Container(
+        color: Colors.white,
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: Colors.blue,
+            child: Text('${item.getIndex}'),
+            foregroundColor: Colors.white,
+          ),
+          title: Text(item.getTitle),
+          subtitle: Text(item.getContent),
+        ),
+      ),
+    );
+  }
+}
+
