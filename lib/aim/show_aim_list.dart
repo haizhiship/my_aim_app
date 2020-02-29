@@ -4,10 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 import 'add_aim.dart';
 import 'aim.dart';
-import 'aimItem.dart';
 
 class AimListPage extends StatefulWidget {
   @override
@@ -16,10 +14,12 @@ class AimListPage extends StatefulWidget {
 
 class _AimListPageState extends State<AimListPage> {
   final List<Aim> _aimItemList = <Aim>[];
+  int totalAimCount; //用于保存所有的目标数量，包括生效和删除的。每次新增目标在此基础上。
   SlidableController slidableController;
 
   @override
   void initState() {
+    getAimList();
     super.initState();
     //getAimList();
   }
@@ -30,20 +30,18 @@ class _AimListPageState extends State<AimListPage> {
       appBar: AppBar(
         title: Text("目标清单"),
       ),
-      body:  Center(
+      body: Center(
         child: OrientationBuilder(
-          builder: (context, orientation) =>
-              _buildListView(
-                  context,
-                  orientation == Orientation.portrait
-                      ? Axis.vertical
-                      : Axis.horizontal),
+          builder: (context, orientation) => _buildListView(
+              context,
+              orientation == Orientation.portrait
+                  ? Axis.vertical
+                  : Axis.horizontal),
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          _navigateToAddAim(context, _aimItemList.length);
-          print("bb114");
+          _navigateToAddAim(context, totalAimCount);
         },
         tooltip: 'Increment',
         child: Icon(Icons.add),
@@ -54,21 +52,39 @@ class _AimListPageState extends State<AimListPage> {
   Future<void> getAimList() async {
     SharedPreferences preferences = await SharedPreferences.getInstance();
     _aimItemList.clear();
+    totalAimCount = 0;
     int i = 1;
     while (preferences.getString(i.toString() + "Aim") != null) {
       Map aimMap = jsonDecode(preferences.getString(i.toString() + "Aim"));
       if (aimMap != null && aimMap["valid"] == "1") {
-        Aim aim = Aim(i.toString(),aimMap["aimTitle"],aimMap["content"],"1");
+        Aim aim = Aim(i.toString(), aimMap["aimTitle"], aimMap["content"], "1");
         _aimItemList.add(aim);
       }
       i++;
     }
+    totalAimCount = i - 1;
     setState(() {});
   }
 
   void _navigateToAddAim(BuildContext context, int length) async {
     final result = await Navigator.push(
-        context, MaterialPageRoute(builder: (context) => AddAimPage(length)));
+        context,
+        MaterialPageRoute( //如果为新增则length为最大长度，传空值用于新，否则传待修改值
+            builder: (context) => NewAimPage(
+                length,totalAimCount == length ? "":_aimItemList[length].getTitle,
+                totalAimCount == length ? "":_aimItemList[length].getContent)));
+    if (result == "OK") {
+      getAimList();
+    }
+  }
+
+  void _navigateToModifyAim(BuildContext context, int index) async {
+    final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => NewAimPage(
+                int.parse(_aimItemList[index].getIndex) - 1,_aimItemList[index].getTitle,
+                _aimItemList[index].getContent)));
     if (result == "OK") {
       getAimList();
     }
@@ -79,8 +95,7 @@ class _AimListPageState extends State<AimListPage> {
       scrollDirection: direction,
       itemBuilder: (context, index) {
         final Axis slidableDirection =
-        direction == Axis.horizontal ? Axis.vertical : Axis.horizontal;
-        var item = _aimItemList[index];
+            direction == Axis.horizontal ? Axis.vertical : Axis.horizontal;
         return _getSlidableWithLists(context, index, slidableDirection);
       },
       itemCount: _aimItemList.length,
@@ -111,7 +126,7 @@ class _AimListPageState extends State<AimListPage> {
       actionPane: SlidableBehindActionPane(),
       actionExtentRatio: 0.25,
       child: direction == Axis.horizontal
-          ? VerticalListItem(_aimItemList[index])
+          ? VerticalListItem(_aimItemList[index], index)
           : HorizontalListItem(_aimItemList[index]),
       actions: <Widget>[
         IconSlideAction(
@@ -128,31 +143,37 @@ class _AimListPageState extends State<AimListPage> {
         ),
       ],
       secondaryActions: <Widget>[
-        Container(
-          height: 800,
-          color: Colors.green,
-          child: Text('a'),
-        ),
         IconSlideAction(
-          caption: 'More',
-          color: Colors.grey.shade200,
-          icon: Icons.more_horiz,
-          onTap: () => _showSnackBar(context, 'More'),
+          caption: '修改',
+          color: Colors.green,
+          icon: Icons.mode_edit,
+          onTap: () => _modifyItem(_aimItemList[index], index),
           closeOnTap: false,
         ),
         IconSlideAction(
-          caption: 'Delete',
+          caption: '删除',
           color: Colors.red,
           icon: Icons.delete,
-          onTap: () => _showSnackBar(context, 'Delete'),
+          onTap: () => _deleteItem(_aimItemList[index], index),
         ),
       ],
     );
   }
 
-
   void _showSnackBar(BuildContext context, String text) {
     Scaffold.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  void _deleteItem(Aim aim, int index) async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    aim.setValid = '0';
+    String aimStr = jsonEncode(aim);
+    preferences.setString((aim.getIndex).toString() + "Aim", aimStr);
+    getAimList();
+  }
+
+  void _modifyItem(Aim aimItemList, int index) {
+    _navigateToModifyAim(context, index);
   }
 }
 
@@ -188,25 +209,22 @@ class HorizontalListItem extends StatelessWidget {
 }
 
 class VerticalListItem extends StatelessWidget {
-  VerticalListItem(this.item);
-
+  VerticalListItem(this.item, this.index);
   final Aim item;
-
+  final int index;
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () =>
-      Slidable
-          .of(context)
-          ?.renderingMode == SlidableRenderingMode.none
-          ? Slidable.of(context)?.open()
-          : Slidable.of(context)?.close(),
+          Slidable.of(context)?.renderingMode == SlidableRenderingMode.none
+              ? Slidable.of(context)?.open()
+              : Slidable.of(context)?.close(),
       child: Container(
         color: Colors.white,
         child: ListTile(
           leading: CircleAvatar(
             backgroundColor: Colors.blue,
-            child: Text('${item.getIndex}'),
+            child: Text((index + 1).toString()),
             foregroundColor: Colors.white,
           ),
           title: Text(item.getTitle),
@@ -216,4 +234,3 @@ class VerticalListItem extends StatelessWidget {
     );
   }
 }
-

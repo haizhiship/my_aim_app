@@ -6,14 +6,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'aim.dart';
 
 // ignore: must_be_immutable
-class AddAimPage extends StatelessWidget {
+class NewAimPage extends StatelessWidget {
   TextEditingController _newAimTitleController = new TextEditingController();
   TextEditingController __newAimContentController = new TextEditingController();
   GlobalKey _addNewAimKey = new GlobalKey<FormState>();
-  int _aimLength;
+  int _aimIndex;
 
-  AddAimPage(int length) {
-    _aimLength = length;
+  NewAimPage(int index,[String newAimTitle,String newAimContent]) {
+    _aimIndex = index;
+    _newAimTitleController.text = newAimTitle;
+    __newAimContentController.text = newAimContent;
   }
 
   @override
@@ -103,7 +105,7 @@ class AddAimPage extends StatelessWidget {
               onPressed: () {
                 if ((_addNewAimKey.currentState as FormState).validate()) {
                   Aim aim = new Aim(
-                      (_aimLength + 1).toString(),
+                      (_aimIndex + 1).toString(),
                       _newAimTitleController.text,
                       __newAimContentController.text,
                       "1");
@@ -121,6 +123,6 @@ class AddAimPage extends StatelessWidget {
   void _saveAim(Aim aim) async {
     SharedPreferences preferences = await SharedPreferences.getInstance();
     String aimStr = jsonEncode(aim);
-    preferences.setString((_aimLength + 1).toString() + "Aim", aimStr);
+    preferences.setString((_aimIndex + 1).toString() + "Aim", aimStr);
   }
 }

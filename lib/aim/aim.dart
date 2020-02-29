@@ -5,11 +5,7 @@ class Aim {
   String _valid;
 
 
-  Aim(String title, String content, String valid, String index)
-      : _index = index,
-        _aimTitle = title,
-        _aimContent = content,
-        _valid = valid;
+  Aim(this._index,this._aimTitle,this._aimContent,this._valid);
 
   String get getTitle => _aimTitle;
   String get getContent => _aimContent;
