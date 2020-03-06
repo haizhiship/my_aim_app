@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'add_aim.dart';
 import 'aim.dart';
+import 'show_aim_detail.dart';
 
 class AimListPage extends StatefulWidget {
   @override
@@ -69,10 +70,14 @@ class _AimListPageState extends State<AimListPage> {
   void _navigateToAddAim(BuildContext context, int length) async {
     final result = await Navigator.push(
         context,
-        MaterialPageRoute( //如果为新增则length为最大长度，传空值用于新，否则传待修改值
+        MaterialPageRoute(
+            //如果为新增则length为最大长度，传空值用于新，否则传待修改值
             builder: (context) => NewAimPage(
-                length,totalAimCount == length ? "":_aimItemList[length].getTitle,
-                totalAimCount == length ? "":_aimItemList[length].getContent)));
+                length,
+                totalAimCount == length ? "" : _aimItemList[length].getTitle,
+                totalAimCount == length
+                    ? ""
+                    : _aimItemList[length].getContent)));
     if (result == "OK") {
       getAimList();
     }
@@ -83,7 +88,8 @@ class _AimListPageState extends State<AimListPage> {
         context,
         MaterialPageRoute(
             builder: (context) => NewAimPage(
-                int.parse(_aimItemList[index].getIndex) - 1,_aimItemList[index].getTitle,
+                int.parse(_aimItemList[index].getIndex) - 1,
+                _aimItemList[index].getTitle,
                 _aimItemList[index].getContent)));
     if (result == "OK") {
       getAimList();
@@ -91,7 +97,7 @@ class _AimListPageState extends State<AimListPage> {
   }
 
   Widget _buildListView(BuildContext context, Axis direction) {
-    return ListView.builder(
+    return ListView.separated(
       scrollDirection: direction,
       itemBuilder: (context, index) {
         final Axis slidableDirection =
@@ -99,6 +105,12 @@ class _AimListPageState extends State<AimListPage> {
         return _getSlidableWithLists(context, index, slidableDirection);
       },
       itemCount: _aimItemList.length,
+      separatorBuilder: (context, index) {
+        return Divider(
+          height: 2.0,
+          indent: 0.0,
+        );
+      },
     );
   }
 
@@ -215,21 +227,27 @@ class VerticalListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () =>
-          Slidable.of(context)?.renderingMode == SlidableRenderingMode.none
-              ? Slidable.of(context)?.open()
-              : Slidable.of(context)?.close(),
+      onTap: () => _navigateToAimDetail(context),
       child: Container(
         color: Colors.white,
         child: ListTile(
-          leading: CircleAvatar(
-            backgroundColor: Colors.blue,
-            child: Text((index + 1).toString()),
-            foregroundColor: Colors.white,
-          ),
-          title: Text(item.getTitle),
-          subtitle: Text(item.getContent),
-        ),
+            leading: CircleAvatar(
+              backgroundColor: Colors.blue,
+              child: Text((index + 1).toString()),
+              foregroundColor: Colors.white,
+            ),
+            title: Text(item.getTitle),
+            subtitle: Text(item.getContent),
+            trailing: Icon(Icons.chevron_right)),
+      ),
+    );
+  }
+
+  _navigateToAimDetail(BuildContext context) {
+    final result = Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AimDetailPage(),
       ),
     );
   }

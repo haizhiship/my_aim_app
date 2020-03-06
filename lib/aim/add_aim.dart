@@ -44,7 +44,7 @@ class NewAimPage extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.all(10),
       child: Text(
-        '我的新目标',
+        '我的目标',
         style: TextStyle(
             fontSize: 25.0,
             color: Colors.deepOrange,
